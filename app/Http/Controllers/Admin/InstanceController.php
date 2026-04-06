@@ -518,7 +518,7 @@ class InstanceController extends Controller
 
     private function ensureWebhookConfigured(WhatsAppInstance $instance, EvolutionService $evolution): void
     {
-        $expectedUrl = url('/webhook/whatsapp/'.$instance->instance_key);
+        $expectedUrl = url('/api/webhook/whatsapp/'.$instance->instance_key);
 
         if ((string) $instance->webhook_secret === $expectedUrl) {
             return;
