@@ -7,3 +7,7 @@ Route::get('/', function () {
 });
 
 Route::post('/webhook/whatsapp', [App\Http\Controllers\WhatsAppController::class, 'handle']);
+
+Route::post('/webhook/test', function () {
+    return response()->json(['ok' => true]);
+});
