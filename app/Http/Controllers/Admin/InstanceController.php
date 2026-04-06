@@ -13,8 +13,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class InstanceController extends Controller
@@ -91,13 +92,12 @@ class InstanceController extends Controller
                 'success' => true,
                 'message' => 'Instance created successfully.',
                 'data' => $instance,
-                'redirect_url' => route('admin.instances.edit', $instance),
             ], 201);
         }
 
         return redirect()
-            ->route('admin.instances.edit', $instance)
-            ->with('success', 'Instance created successfully. Configure AI settings now.');
+            ->route('admin.businesses.show', $business)
+            ->with('success', 'Instance created successfully. Scan QR to connect.');
     }
 
     public function qr(WhatsAppInstance $instance, EvolutionService $evolution): JsonResponse
@@ -518,10 +518,22 @@ class InstanceController extends Controller
 
     private function ensureWebhookConfigured(WhatsAppInstance $instance, EvolutionService $evolution): void
     {
-        $expectedUrl = url('/api/webhook/whatsapp/'.$instance->instance_key);
+        $expectedUrl = $this->buildWebhookUrl($instance);
 
         if ((string) $instance->webhook_secret === $expectedUrl) {
             return;
+        }
+
+        $existingWebhookResponse = $evolution->getWebhook($instance->instance_key);
+        if (($existingWebhookResponse['success'] ?? false) === true) {
+            $existingWebhookUrl = $this->extractWebhookUrl($existingWebhookResponse['data'] ?? null);
+            if (is_string($existingWebhookUrl) && trim($existingWebhookUrl) === $expectedUrl) {
+                $instance->forceFill([
+                    'webhook_secret' => $expectedUrl,
+                ])->save();
+
+                return;
+            }
         }
 
         $setWebhookResponse = $evolution->setWebhook($instance->instance_key, $expectedUrl, ['MESSAGES_UPSERT']);
@@ -530,7 +542,53 @@ class InstanceController extends Controller
             $instance->forceFill([
                 'webhook_secret' => $expectedUrl,
             ])->save();
+
+            return;
         }
+
+        Log::warning('Failed to configure Evolution webhook for instance.', [
+            'instance_id' => $instance->id,
+            'instance_key' => $instance->instance_key,
+            'expected_url' => $expectedUrl,
+            'response_status' => $setWebhookResponse['status'] ?? null,
+            'response_message' => $setWebhookResponse['message'] ?? null,
+        ]);
+    }
+
+    private function buildWebhookUrl(WhatsAppInstance $instance): string
+    {
+        $pathTemplate = (string) config('evolution.webhook_path', '/webhook/whatsapp/{instance_key}');
+        $resolvedPath = str_replace('{instance_key}', $instance->instance_key, $pathTemplate);
+        $normalizedPath = '/'.ltrim($resolvedPath, '/');
+
+        $configuredBaseUrl = trim((string) config('evolution.webhook_base_url', ''));
+        if ($configuredBaseUrl !== '') {
+            return rtrim($configuredBaseUrl, '/').$normalizedPath;
+        }
+
+        return url($normalizedPath);
+    }
+
+    private function extractWebhookUrl($payload): ?string
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        $candidates = [
+            data_get($payload, 'url'),
+            data_get($payload, 'webhook.url'),
+            data_get($payload, 'data.url'),
+            data_get($payload, 'data.webhook.url'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+
+        return null;
     }
 
     private function normalizeIntentTags(array $tags): array

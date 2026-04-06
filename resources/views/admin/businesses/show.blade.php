@@ -529,10 +529,12 @@
 
             var endpoints = {
                 store: '{{ route('admin.instances.store') }}',
-                qr: '/instances/{id}/qr',
-                status: '/instances/{id}/status',
-                update: '/instances/{id}',
-                destroy: '/instances/{id}'
+                qr: '{{ route('admin.instances.qr', ['instance' => '__INSTANCE__']) }}',
+                status: '{{ route('admin.instances.status', ['instance' => '__INSTANCE__']) }}',
+                update: '{{ route('admin.instances.update', ['instance' => '__INSTANCE__']) }}',
+                destroy: '{{ route('admin.instances.destroy', ['instance' => '__INSTANCE__']) }}',
+                leads: '{{ route('admin.instances.leads', ['instance' => '__INSTANCE__']) }}',
+                edit: '{{ route('admin.instances.edit', ['instance' => '__INSTANCE__']) }}'
             };
 
             var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -568,7 +570,7 @@
             var aiLimitMessage = @json($aiLimitReachedMessage);
 
             function endpoint(urlPattern, id) {
-                return urlPattern.replace('{id}', String(id));
+                return urlPattern.replace('__INSTANCE__', String(id));
             }
 
             function showToast(message) {
@@ -731,10 +733,10 @@
                     + '<td class="instance-status">' + statusBadgeHtml(instance.status || 'pending') + '<\/td>'
                     + '<td class="instance-ai">' + aiToggleHtml(instance) + '<\/td>'
                     + '<td class="text-end">'
-                    + '  <a href="/instances/' + instance.id + '/leads" class="btn btn-sm btn-light-info me-2">'
+                    + '  <a href="' + endpoint(endpoints.leads, instance.id) + '" class="btn btn-sm btn-light-info me-2">'
                     + '      <i class="ki-outline ki-profile-circle fs-6 me-1"></i>Leads'
                     + '  </a>'
-                    + '  <a href="/instances/' + instance.id + '/edit" class="btn btn-sm btn-light-primary me-2">'
+                    + '  <a href="' + endpoint(endpoints.edit, instance.id) + '" class="btn btn-sm btn-light-primary me-2">'
                     + '      <i class="ki-outline ki-notepad-edit fs-6 me-1"></i>Edit'
                     + '  </a>'
                     + '  <button type="button" class="btn btn-sm btn-light-warning me-2 js-reconnect-instance ' + reconnectButtonClass(instance.status || 'pending') + '" data-instance-id="' + instance.id + '" data-instance-name="' + instance.name + '">'
@@ -884,8 +886,21 @@
                         })
                     });
 
-                    var redirectUrl = payload.redirect_url || ('/instances/' + payload.data.id + '/edit');
-                    window.location.href = redirectUrl;
+                    var createdInstance = payload.data;
+                    addOrUpdateRow(createdInstance);
+                    updateAddNumberButtonState();
+
+                    connectMode = 'reconnect';
+                    connectModalTitle.textContent = 'Scan QR Code';
+                    connectNameWrapper.classList.add('d-none');
+                    connectNameInput.required = false;
+                    connectPhoneWrapper.classList.add('d-none');
+                    connectPhoneInput.required = false;
+                    connectSubmitBtn.classList.add('d-none');
+                    connectInstanceIdInput.value = String(createdInstance.id);
+                    setConnectLoading(false, 'Create & Connect');
+
+                    await fetchQrAndStartPolling(createdInstance.id);
                 } catch (error) {
                     setConnectLoading(false, 'Create & Connect');
                     setConnectError(error.message);

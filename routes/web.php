@@ -73,5 +73,5 @@ Route::middleware(['auth', 'admin'])->group(function (): void {
     Route::delete('/instances/{instance}/leads/{lead}', [InstanceController::class, 'destroyLead'])->name('admin.instances.leads.destroy');
 });
 
-/*Route::post('/webhook/whatsapp', [WebhookController::class, 'handleWithoutInstanceKey']);
-Route::post('/webhook/whatsapp/{instance_key}', [WebhookController::class, 'handle']);*/
+Route::post('/webhook/whatsapp', [WebhookController::class, 'handleWithoutInstanceKey']);
+Route::post('/webhook/whatsapp/{instance_key}', [WebhookController::class, 'handle']);

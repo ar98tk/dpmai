@@ -35,18 +35,68 @@ class EvolutionService
 
     public function setWebhook(string $instanceKey, string $url, array $events = ['MESSAGES_UPSERT']): array
     {
-        return $this->request('post', '/api/webhook/set/'.rawurlencode($instanceKey), [
+        $encodedKey = rawurlencode($instanceKey);
+        $flatPayload = [
+            'enabled' => true,
+            'url' => $url,
+            'events' => $events,
+        ];
+        $nestedPayload = [
             'webhook' => [
                 'enabled' => true,
                 'url' => $url,
                 'events' => $events,
             ],
-        ]);
+        ];
+        $attempts = [
+            ['/webhook/set/'.$encodedKey, $flatPayload],
+            ['/api/webhook/set/'.$encodedKey, $flatPayload],
+            ['/webhook/set/'.$encodedKey, $nestedPayload],
+            ['/api/webhook/set/'.$encodedKey, $nestedPayload],
+        ];
+        $lastResponse = [
+            'success' => false,
+            'status' => null,
+            'message' => 'Failed to configure webhook.',
+            'data' => null,
+        ];
+
+        foreach ($attempts as [$uri, $payload]) {
+            $response = $this->request('post', $uri, $payload);
+            if ($response['success']) {
+                return $response;
+            }
+
+            $lastResponse = $response;
+        }
+
+        return $lastResponse;
     }
 
     public function getWebhook(string $instanceKey): array
     {
-        return $this->request('get', '/webhook/find/'.rawurlencode($instanceKey));
+        $encodedKey = rawurlencode($instanceKey);
+        $attempts = [
+            '/webhook/find/'.$encodedKey,
+            '/api/webhook/find/'.$encodedKey,
+        ];
+        $lastResponse = [
+            'success' => false,
+            'status' => null,
+            'message' => 'Failed to fetch webhook.',
+            'data' => null,
+        ];
+
+        foreach ($attempts as $uri) {
+            $response = $this->request('get', $uri);
+            if ($response['success']) {
+                return $response;
+            }
+
+            $lastResponse = $response;
+        }
+
+        return $lastResponse;
     }
 
     public function sendTextMessage(string $instanceKey, string $phone, string $text): array
