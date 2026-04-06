@@ -6,8 +6,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::post('/webhook/whatsapp', [App\Http\Controllers\WhatsAppController::class, 'handle']);
+/*Route::post('/webhook/whatsapp', [App\Http\Controllers\WhatsAppController::class, 'handle']);
 
 Route::post('/webhook/test', function () {
     return response()->json(['ok' => true]);
-});
+});*/
+
+Route::post('/webhook/whatsapp', [App\Http\Controllers\WebhookController::class, 'handleWithoutInstanceKey']);
+Route::post('/webhook/whatsapp/{instance_key}', [App\Http\Controllers\WebhookController::class, 'handle']);
