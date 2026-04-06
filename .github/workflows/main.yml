@@ -7,10 +7,10 @@ jobs:
     steps:
     - name: 🚚 Get latest code
       uses: actions/checkout@v3
-    
+
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        server: dpmuae.com
+        server: luxuryarabspa.com
         username: ai@dpmuae.com
         password: Newlook@2025
