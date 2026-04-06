@@ -35,7 +35,7 @@ class EvolutionService
 
     public function setWebhook(string $instanceKey, string $url, array $events = ['MESSAGES_UPSERT']): array
     {
-        return $this->request('post', '/webhook/set/'.rawurlencode($instanceKey), [
+        return $this->request('post', '/api/webhook/set/'.rawurlencode($instanceKey), [
             'webhook' => [
                 'enabled' => true,
                 'url' => $url,
