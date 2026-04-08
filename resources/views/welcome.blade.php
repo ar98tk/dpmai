@@ -39,6 +39,10 @@
             min-height: 100%;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         .grid-overlay {
             position: fixed;
             inset: 0;
@@ -648,6 +652,14 @@
             gap: 1rem;
         }
 
+        #plans {
+            scroll-margin-top: 18px;
+        }
+
+        #plans.plans-spotlight {
+            animation: plansSpotlight 1.25s ease;
+        }
+
         .plan-card {
             background: linear-gradient(150deg, rgba(16, 23, 42, 0.9), rgba(11, 17, 31, 0.95));
             border: 1px solid rgba(124, 184, 255, 0.35);
@@ -767,6 +779,17 @@
             to { transform: rotate(360deg); }
         }
 
+        @keyframes plansSpotlight {
+            0% {
+                transform: translateY(22px);
+                opacity: 0.55;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
         @media (max-width: 1024px) {
             .hero {
                 grid-template-columns: 1fr;
@@ -824,8 +847,8 @@
             <img src="{{ asset('dpm-logo-white.png') }}" alt="DPM Logo">
         </div>
         <div class="nav-actions">
-            <a href="{{ route('admin.login') }}" class="btn btn-outline">Admin Login</a>
-            <a href="#plans" class="btn btn-primary">See Plans</a>
+            <a href="{{ route('login') }}" class="btn btn-outline">Login</a>
+            <a href="{{ route('register') }}" class="btn btn-primary">Start Free Trial</a>
         </div>
     </nav>
 
@@ -841,8 +864,8 @@
                 Reply instantly, capture leads, and grow your business with AI — without any technical setup.
             </p>
             <div class="hero-actions">
-                <a href="{{ route('admin.login') }}" class="btn btn-primary">Start Free Trial</a>
-                <a href="#plans" class="btn btn-outline">Watch Demo</a>
+                <a href="{{ route('register') }}" class="btn btn-primary">Start Free Trial</a>
+                <a href="#plans" class="btn btn-outline plan-scroll">See Plans</a>
             </div>
         </div>
 
@@ -1058,7 +1081,7 @@
                             @endif
                         </ul>
                             <br>
-                        <a href="{{ route('admin.login') }}" class="btn {{ $isHighlighted ? 'btn-primary' : 'btn-outline' }}">
+                        <a href="{{ route('register', ['plan' => $plan->id]) }}" class="btn {{ $isHighlighted ? 'btn-primary' : 'btn-outline' }}">
                             Select {{ $plan->name }}
                         </a>
                     </article>
@@ -1067,9 +1090,30 @@
         @endif
     </section>
 
-    <footer class="footer">
+<footer class="footer">
         {{ date('Y') }} DPM AI. Built for scalable automation.
     </footer>
 </div>
+<script>
+    (function () {
+        var triggers = document.querySelectorAll('.plan-scroll');
+        var plansSection = document.getElementById('plans');
+
+        if (!triggers.length || !plansSection) {
+            return;
+        }
+
+        triggers.forEach(function (trigger) {
+            trigger.addEventListener('click', function (event) {
+                event.preventDefault();
+                plansSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                plansSection.classList.remove('plans-spotlight');
+                window.setTimeout(function () {
+                    plansSection.classList.add('plans-spotlight');
+                }, 250);
+            });
+        });
+    })();
+</script>
 </body>
 </html>

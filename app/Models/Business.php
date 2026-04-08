@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Notifications\BusinessResetPassword;
+use App\Notifications\BusinessVerifyEmail;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,9 +14,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 
-class Business extends Authenticatable
+class Business extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory, MustVerifyEmailTrait, Notifiable;
 
     protected $fillable = [
         'name',
@@ -96,5 +100,15 @@ class Business extends Authenticatable
             ->where('end_date', '>', now())
             ->latest('end_date')
             ->first();
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new BusinessVerifyEmail());
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new BusinessResetPassword((string) $token));
     }
 }

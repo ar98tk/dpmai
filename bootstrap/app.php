@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,8 +14,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo('/admin');
-        $middleware->redirectUsersTo('/admin/home');
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            return $request->is('admin') || $request->is('admin/*')
+                ? '/admin'
+                : '/login';
+        });
+
+        $middleware->redirectUsersTo(function (Request $request): string {
+            $business = $request->user('business');
+            if ($business) {
+                return $business->hasVerifiedEmail() ? '/' : '/email/verify';
+            }
+
+            return '/admin/home';
+        });
         $middleware->validateCsrfTokens(except: [
             'webhook/whatsapp',
             'webhook/whatsapp/*',

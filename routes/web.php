@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\BusinessWebAuthController;
 use App\Models\Plan;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,31 @@ Route::get('/', function () {
     return view('welcome', [
         'plans' => $plans,
     ]);
+})->name('home');
+
+Route::middleware('guest:business')->group(function (): void {
+    Route::get('/login', [BusinessWebAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [BusinessWebAuthController::class, 'login'])->name('login.submit');
+
+    Route::get('/register', [BusinessWebAuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [BusinessWebAuthController::class, 'register'])->name('register.submit');
+    Route::get('/register/checkout/success', [BusinessWebAuthController::class, 'completePaidRegistration'])->name('register.checkout.success');
+
+    Route::get('/forgot-password', [BusinessWebAuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [BusinessWebAuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [BusinessWebAuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [BusinessWebAuthController::class, 'resetPassword'])->name('password.update');
+});
+
+Route::middleware('auth:business')->group(function (): void {
+    Route::post('/logout', [BusinessWebAuthController::class, 'logout'])->name('logout');
+    Route::get('/email/verify', [BusinessWebAuthController::class, 'showEmailVerificationNotice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [BusinessWebAuthController::class, 'sendEmailVerificationNotification'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+    Route::get('/email/verify/{id}/{hash}', [BusinessWebAuthController::class, 'verifyEmail'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
 });
 
 Route::prefix('admin')->name('admin.')->group(function (): void {
